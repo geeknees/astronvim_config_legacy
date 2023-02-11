@@ -44,7 +44,7 @@ local config = {
       -- set to true or false etc.
       relativenumber = true, -- sets vim.opt.relativenumber
       number = true, -- sets vim.opt.number
-      spell = false, -- sets vim.opt.spell
+      spell = true, -- sets vim.opt.spell
       signcolumn = "auto", -- sets vim.opt.signcolumn to auto
       wrap = false, -- sets vim.opt.wrap
     },
@@ -77,7 +77,7 @@ local config = {
     "███████ ███████    ██    ██████  ██    ██",
     "██   ██      ██    ██    ██   ██ ██    ██",
     "██   ██ ███████    ██    ██   ██  ██████",
-    " ",
+    "-----------------------------------------",
     "    ███    ██ ██    ██ ██ ███    ███",
     "    ████   ██ ██    ██ ██ ████  ████",
     "    ██ ██  ██ ██    ██ ██ ██ ████ ██",
@@ -137,10 +137,10 @@ local config = {
 
   -- Extend LSP configuration
   lsp = {
-    skip_setup = { "tsserver" },
+    -- skip_setup = { "solargraph" },
     -- enable servers that you already have installed without mason
     servers = {
-      -- "pyright"
+      -- "solargraph"
     },
     formatting = {
       -- control auto formatting on save
@@ -154,7 +154,7 @@ local config = {
         },
       },
       disabled = { -- disable formatting capabilities for the listed language servers
-        -- "sumneko_lua",
+        -- "solargraph",
       },
       timeout_ms = 1000, -- default format timeout
       -- filter = function(client) -- fully override the default formatting function
@@ -240,20 +240,15 @@ local config = {
       --     require("lsp_signature").setup()
       --   end,
       -- },
-      {
-        "jose-elias-alvarez/typescript.nvim",
-        after = "mason-lspconfig.nvim",
-        config = function()
-          require("typescript").setup {
-            server = astronvim.lsp.server_settings "tsserver",
-          }
-        end,
-      },
+      {'tpope/vim-rails'},
+      {'thinca/vim-ref'},
+      {'ntpeters/vim-better-whitespace'},
+      {'andymass/vim-matchup'},
     },
     -- All other entries override the require("<key>").setup({...}) call for default plugins
     ["null-ls"] = function(config) -- overrides `require("null-ls").setup(config)`
       -- config variable is the default configuration table for the setup function call
-      -- local null_ls = require "null-ls"
+      local null_ls = require "null-ls"
 
       -- Check supported formatters and linters
       -- https://github.com/jose-elias-alvarez/null-ls.nvim/tree/main/lua/null-ls/builtins/formatting
@@ -262,20 +257,43 @@ local config = {
         -- Set a formatter
         -- null_ls.builtins.formatting.stylua,
         -- null_ls.builtins.formatting.prettier,
+        null_ls.builtins.code_actions.cspell,
+        null_ls.builtins.diagnostics.cspell.with({
+          diagnostics_postprocess = function(diagnostic)
+            -- レベルをINFOに変更（デフォルトはERROR）
+            diagnostic.severity = vim.diagnostic.severity.INFO
+          end,
+          condition = function()
+            -- cspellが実行できるときのみ有効
+            return vim.fn.executable('cspell') > 0
+          end,
+          extra_args = { '--config', vim.fn.expand('~/.config/nvim/lua/user/cspell.json') }
+        }),
+        require('null-ls').builtins.diagnostics.rubocop.with({
+          prefer_local = "bundle_bin",
+          condition = function(utils)
+            return utils.root_has_file({".rubocop.yml"})
+          end
+        }),
+        require('null-ls').builtins.formatting.rubocop.with({
+          prefer_local = "bundle_bin",
+          condition = function(utils)
+            return utils.root_has_file({".rubocop.yml"})
+          end
+        }),
       }
       return config -- return final config table
     end,
     treesitter = { -- overrides `require("treesitter").setup(...)`
-      -- ensure_installed = { "lua" },
+      ensure_installed = { "lua", 'javascript', 'ruby', 'solidity', 'tsx', 'typescript' },
     },
     -- use mason-lspconfig to configure LSP installations
     ["mason-lspconfig"] = { -- overrides `require("mason-lspconfig").setup(...)`
-      -- ensure_installed = { "sumneko_lua" },
-      ensure_installed = { "tsserver" },
+      ensure_installed = { 'tsserver', 'solargraph', 'solc', 'sumneko_lua' },
     },
     -- use mason-null-ls to configure Formatters/Linter installation for null-ls sources
     ["mason-null-ls"] = { -- overrides `require("mason-null-ls").setup(...)`
-      -- ensure_installed = { "prettier", "stylua" },
+      ensure_installed = { "prettier", 'cspell','solhint', 'eslint_d', 'stylua' },
     },
     ["mason-nvim-dap"] = { -- overrides `require("mason-nvim-dap").setup(...)`
       -- ensure_installed = { "python" },
